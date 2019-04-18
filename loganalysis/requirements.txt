@@ -1,0 +1,3 @@
+此功能库基于python编码，依赖信息如下：
+python版本：V3.3及以上
+依赖库：numpy， pandas，matplotlib（建议安装anocanda即可）
