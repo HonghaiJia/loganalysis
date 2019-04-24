@@ -139,13 +139,13 @@ class Cell(object):
     def _get_uldlcfgidx(self):
         '''用户输入uldlcfgidx'''
 
-        uldlcfgidx = 255
-        if hasattr(self, '_dl'):
-            uldlcfgidx = self._dl.infer_uldlcfgidx()
-        if uldlcfgidx == 255 and hasattr(self, '_ul'):
-            uldlcfgidx = self._ul.infer_uldlcfgidx()
-        if uldlcfgidx != 255:
-            return uldlcfgidx
+#        uldlcfgidx = 255
+#        if hasattr(self, '_dl'):
+#            uldlcfgidx = self._dl.infer_uldlcfgidx()
+#        if uldlcfgidx == 255 and hasattr(self, '_ul'):
+#            uldlcfgidx = self._ul.infer_uldlcfgidx()
+#        if uldlcfgidx != 255:
+#            return uldlcfgidx
 
         while True:
             uldlcfgidx = input('Please input uldlcfgidx(0,1,2,7):')

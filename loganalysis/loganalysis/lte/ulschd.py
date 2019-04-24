@@ -30,6 +30,8 @@ class UlSchd():
         rlt = pd.DataFrame()
         for data in self._log.gen_of_cols(ack_cols):
             data = data.dropna(how='any')
+            if 0 == data.size:
+                continue
             cnt = data[ack_cols[1]].groupby(data[ack_cols[0]].map(self._log.dectime) // airtime_bin_size)\
                 .apply(lambda x: x.value_counts()).unstack(level=1)
             rlt = rlt.add(cnt, fill_value=0, level=0)

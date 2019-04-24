@@ -1,4 +1,6 @@
 # coding=utf-8
+import numpy as np
+import pandas as pd
 from loganalysis.log import Log
 from loganalysis.log import LogFile
 from loganalysis.const import *
@@ -15,7 +17,7 @@ class LteLog(Log):
         要求所有文件命名符合EI命名格式：子系统_时间.csv
     '''
 
-    def __init__(self, directory, time_interval=None, product_type='Micro'):
+    def __init__(self, directory, time_interval=None, product_type='Macro'):
         '''初始化Log实例,把所有Log按照类型分类
 
            Args:
@@ -26,6 +28,7 @@ class LteLog(Log):
         super(LteLog, self).__init__(directory, time_interval, product_type)
         self._cells = {}
         self._cellids = set()
+        self._cell_and_ue_ids = pd.DataFrame()
         for filetype in LTE_FILE_TYPES:
             filenames = self._filenames_of_type(filetype, time_interval)
             if filenames:
@@ -35,6 +38,7 @@ class LteLog(Log):
                 self._logfiles[filetype] = logfile
                 if filetype == LTE_FILE_NI or filetype == LTE_FILE_DLSCHD or filetype == LTE_FILE_ULSCHD:
                     self._cellids = set.union(self._cellids, self._logfiles[filetype].cellids)
+                    self._cell_and_ue_ids = pd.concat([self._logfiles[filetype]._cell_and_ue_ids, self._cell_and_ue_ids]).drop_duplicates()
 
     def _get_phy_logfile(self, cellid, ftype):
         '''根据CellId以类型选择PHY文件
@@ -99,6 +103,17 @@ class LteLog(Log):
             return self._cells[cellid]
         else:
             return '非法CellId值，此小区不存在'
+        
+    def get_cell_and_ue_ids(self):
+        '''获取小区实例
+            Args：
+                None
+            Returns:
+                Log中的所有CellId,UeId
+        '''
+
+        return self._cell_and_ue_ids
+
 
     def get_schd_logfile(self, filetype, cellid, uegid=None):
         '''获取Log文件实例'''
@@ -113,7 +128,40 @@ class LteLog(Log):
         id_filter = {'CellId': [cellid], 'UEGID': [uegid]}
         return LteFile(filetype, self._directory, self._filenames_of_type(filetype), id_filter=id_filter)
 
+    def show_ue_livetime(self):
+        cols = ['AirTime', 'UEGID', 'CellId']
 
+        rlt = pd.DataFrame()
+        for data in self.gen_of_cols(cols):
+            data = data.groupby((cols[1], cols[2]))
+            start = data[cols[0]].first()
+            end = data[cols[0]].last()
+            for uegid in start.index:
+                if uegid not in rlt.index:
+                    rlt.at[uegid, 'start'] = start[uegid]
+                    rlt.at[uegid, 'end'] = end[uegid]
+                else:
+                    rlt.at[uegid, 'start'] = min(start[uegid], rlt.at[uegid, 'start'])
+                    rlt.at[uegid, 'end'] = max(end[uegid], rlt.at[uegid, 'end'])
+
+        temp = pd.DataFrame()
+        for idx, uegid in enumerate(rlt.index):
+            temp.at[rlt.at[uegid, 'start'], uegid] = 0
+            temp.at[rlt.at[uegid, 'end'], uegid] = idx + 1
+
+        def fill_na_val(uedata):
+            maxidx = uedata.idxmax()
+            minidx = uedata.idxmin()
+            uedata[minidx:maxidx+1] = uedata.max()
+            return uedata
+
+        temp.columns.name = 'CELLID_UEGID'
+        temp = temp.reindex(np.sort(temp.index)).apply(fill_na_val)
+        temp.index.name = 'AirTime'
+        fig, ax = plt.subplots(1, 1)
+        ax.set_ylim([0, len(rlt.index)+1])
+        temp.plot(ax=ax, kind='line', title='Ue_Alive_time')
+        
 class LteFile(LogFile):
     '''Log文件接口类'''
 
@@ -127,6 +175,7 @@ class LteFile(LogFile):
         super(LteFile, self).__init__(filetype, directory, files, id_filter)
         self._cellids = set()
         self._uegids = set()
+        self._cell_and_ue_ids = pd.DataFrame()
         cols = ['CellId', 'UEGID']
         for data in self.gen_of_cols(cols):
             if len(data.index) == 0:
@@ -134,6 +183,7 @@ class LteFile(LogFile):
                 return
             self._cellids = set.union(self._cellids, set(data[cols[0]]))
             self._uegids = set.union(self._uegids, set(data[cols[1]]))
+            self._cell_and_ue_ids = pd.concat([data[cols].drop_duplicates(), self._cell_and_ue_ids]).drop_duplicates()
 
     @property
     def cellids(self):
@@ -144,3 +194,8 @@ class LteFile(LogFile):
     def uegids(self):
         '''获取所有UEGID'''
         return self._uegids
+    
+    @property
+    def cell_and_ue_ids(self):
+        '''获取所有UEGID,CellGid'''
+        return self._cell_and_ue_ids

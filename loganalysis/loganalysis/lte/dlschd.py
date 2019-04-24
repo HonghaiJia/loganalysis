@@ -40,6 +40,8 @@ class DlSchd():
             data = data.dropna(how='any').astype(np.uint32)
             if subframe < 10:
                 data = data[data[ack_cols[0]]%16 == subframe]
+            if 0 == data.size:
+                continue
             ack_sum = data[ack_cols[1]] + data[ack_cols[2]]
             cnt = ack_sum.groupby(data[ack_cols[0]].map(self._log.dectime) // airtime_bin_size).apply(
                 lambda x: x.value_counts()).unstack(level=1)
@@ -76,18 +78,18 @@ class DlSchd():
         ratio.plot(ax=ax, kind='line', style='o--')
 
     def show_amc(self, airtime_bin_size=1000):
-        '''画图描述指定粒度下的调度RB数
+        '''画图描述指定粒度下的调度Mcs
 
             Args:
                 airtime_bin_size：统计粒度，默认为1000ms
             Returns：
-                趋势图：x轴为时间粒度，y轴为平均std_mcs，delta, bler
+                趋势图：x轴为时间粒度，y轴为平均std_mcs，delta
         '''
         cols = ['AMC_DIV.s16TxDivDeltaMcs', 'AMC_DIV.u8TxDivStdMcs', 'AMC_CDD.s16CddDeltaMcs',
                 'AMC_CDD.u8CddStdMcs']
 
         mean_data = self._log.mean_of_cols(cols, airtime_bin_size=airtime_bin_size, by='cnt', time_col='AirTime')
-        fig, ax = plt.subplots(3, 1, sharex=True)
+        fig, ax = plt.subplots(2, 1, sharex=True)
         delta = mean_data[[cols[0], cols[2]]].dropna(how='all', axis=1)/100
         ax[0].set_ylabel('Delta')
         ax[0].set_ylim([-28, 28])
@@ -101,9 +103,7 @@ class DlSchd():
         stdmcs = mean_data[[cols[1], cols[3]]].dropna(how='all', axis=1)
         ax[1].set_ylabel('Std_mcs')
         stdmcs.plot(ax=ax[1], kind='line', style='o--')
-        self.show_bler_of_subframe(airtime_bin_size=airtime_bin_size, ax=ax[2])
-    
-       
+ 
     def show_bler_of_subframe(self, airtime_bin_size=1000, subframe = 255, ax=None):
         '''画图描述指定粒度下的子帧级bler
 
