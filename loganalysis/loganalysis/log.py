@@ -333,8 +333,8 @@ class LogFile(object):
             else:
                 airtime = data[time_col].map(self.dectime) // airtime_bin_size
             group_data = data[cols].groupby(airtime)
-            rlt = pd.concat([rlt, group_data.max().dropna()])
-        return rlt.drop_duplicates(keep='first')
+            rlt = pd.concat([rlt, group_data.max()])
+        return rlt
 
     def cnt_of_cols(self, cols, airtime_bin_size, filters=None, time_col='AirTime'):
         '''按照时间粒度计算指定列的次数
