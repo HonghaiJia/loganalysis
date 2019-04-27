@@ -8,6 +8,8 @@ AGG_FUNC = ('sum', 'mean', 'max', 'min', 'count')
 AGG_FUNC_SUM = AGG_FUNC[0]
 AGG_FUNC_MEAN = AGG_FUNC[1]
 AGG_FUNC_CNT = AGG_FUNC[4]
+AGG_FUNC_MIN = AGG_FUNC[3]
+AGG_FUNC_MAX = AGG_FUNC[2]
 
 
 ########################################################################################################################

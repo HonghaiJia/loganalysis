@@ -109,12 +109,55 @@ class UlSchd():
         '''
         col_name = r'GRANT.u8RbNum'
         self._log.show_trend(col_name, AGG_FUNC_MEAN, airtime_bin_size, mean_by='time')
-        self._log.show_hist(col_name, xlim=[0, 100])
+        #self._log.show_hist(col_name, xlim=[0, 100])
+        return
+        
+    def show_rpt_minbsr(self, lchgrp=3, airtime_bin_size=1000):
+        '''画图描述指定粒度下的report bsr
+
+            Args:
+                lchgrp: 待分析字段
+                airtime_bin_size：统计粒度，默认为1000ms
+            Returns：
+                趋势图：x轴为时间粒度，y轴为平均RB数
+        '''
+        col_name = r'BSR.u32LchGrpBsr'
+        filters = {r'BSR.u32LchGrpId': [lchgrp]}
+        self._log.show_trend(col_name, AGG_FUNC_MIN, airtime_bin_size, filters=filters)
+        return
+        
+    def show_rpt_maxbsr(self, lchgrp=3, airtime_bin_size=1000):
+        '''画图描述指定粒度下的report bsr
+
+            Args:
+                lchgrp: 待分析lchgrpId
+                airtime_bin_size：统计粒度，默认为1000ms
+            Returns：
+                趋势图：x轴为时间粒度，y轴为平均RB数
+        '''
+        col_name = r'BSR.u32LchGrpBsr'
+        filters = {r'BSR.u32LchGrpId': [lchgrp]}
+        self._log.show_trend(col_name, AGG_FUNC_MAX, airtime_bin_size, filters=filters)
+        return
+        
+    def show_rpt_bsr(self, lchgrp=3):
+        '''画图描述report bsr
+
+            Args:
+                lchgrp: 待分析lchgrpId
+            Returns：
+                趋势图：x轴为时间粒度，y轴为平均RB数
+        '''
+        col = ['AirTime', r'BSR.u32LchGrpId', r'BSR.u32LchGrpBsr']
+        filters = {r'BSR.u32LchGrpId': [lchgrp]}
+        rpt_bsr = self._log.get_data_of_cols(cols=col, val_filter=filters)
+        rpt_bsr = rpt_bsr.set_index(col[0])[col[2]]
+        rpt_bsr.plot()
         return
 
     def schdfail_reasons(self):
         '''汇总调度失败原因
-
+        
             Args：
                 无
             Returns：

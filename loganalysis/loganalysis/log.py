@@ -242,6 +242,19 @@ class LogFile(object):
             data = data[(airtime <= end_airtime) & (airtime >= start_airtime)]
             rlt = pd.concat([rlt, data], ignore_index=True)
         return rlt
+        
+    def get_data_of_cols(self, cols, val_filter=None):
+        '''获取指定cols的数据
+            Args：
+                cols: 列名列表
+                col_val_filter: 过滤条件，字典格式{'colname': [val1,]}
+            Returns:
+                数据，DataFrame格式
+        '''
+        rlt = pd.DataFrame()
+        for data in self.gen_of_cols(cols=cols, val_filter=val_filter):
+            rlt = pd.concat([rlt, data])
+        return rlt
 
     def mean_of_cols(self, cols, airtime_bin_size, by, filters=None, time_col='AirTime'):
         '''按照时间粒度计算指定列的平均值
@@ -260,10 +273,11 @@ class LogFile(object):
                 airtime = np.zeros(len(data.index))
             else:
                 airtime = data[time_col].map(self.dectime) // airtime_bin_size
-            group_data = data[cols].groupby(airtime)
+  
+            group_data = data[cols].groupby(airtime)          
             rlt = rlt.add(group_data.sum(), fill_value=0)
-            cnt = cnt.add(group_data.count(), fill_value=0) if by == 'cnt' else airtime_bin_size
-        return rlt.div(cnt)
+            cnt = cnt.add(group_data.count(), fill_value=0) 
+        return rlt.div(cnt).dropna()
 
     def sum_of_cols(self, cols, airtime_bin_size, filters=None, time_col='AirTime'):
         '''按照时间粒度计算指定列的总和
@@ -282,7 +296,45 @@ class LogFile(object):
                 airtime = data[time_col].map(self.dectime) // airtime_bin_size
             group_data = data[cols].groupby(airtime)
             rlt = rlt.add(group_data.sum(), fill_value=0)
-        return rlt
+        return rlt.dropna()
+        
+    def min_of_cols(self, cols, airtime_bin_size, filters=None, time_col='AirTime'):
+        '''按照时间粒度计算指定列的最小值
+
+            Args:
+                cols:待汇总的列名
+                airtime_bin_size：时间粒度（ms), 0表示不区分时间粒度
+                filters：滤波条件，字典格式{‘列名0’：值， ‘列名1’：值...}
+                time_col: 聚合的时间列名，默认‘AirTime’
+        '''
+        rlt = pd.DataFrame()
+        for data in self.gen_of_cols(cols+[time_col], val_filter=filters):
+            if airtime_bin_size == 0:
+                airtime = np.zeros(len(data.index))
+            else:
+                airtime = data[time_col].map(self.dectime) // airtime_bin_size
+            group_data = data[cols].groupby(airtime)
+            rlt = pd.concat([rlt, group_data.min().dropna()])
+        return rlt.drop_duplicates(keep='first')
+        
+    def max_of_cols(self, cols, airtime_bin_size, filters=None, time_col='AirTime'):
+        '''按照时间粒度计算指定列的最大值
+
+            Args:
+                cols:待汇总的列名
+                airtime_bin_size：时间粒度（ms), 0表示不区分时间粒度
+                filters：滤波条件，字典格式{‘列名0’：值， ‘列名1’：值...}
+                time_col: 聚合的时间列名，默认‘AirTime’
+        '''
+        rlt = pd.DataFrame()
+        for data in self.gen_of_cols(cols+[time_col], val_filter=filters):
+            if airtime_bin_size == 0:
+                airtime = np.zeros(len(data.index))
+            else:
+                airtime = data[time_col].map(self.dectime) // airtime_bin_size
+            group_data = data[cols].groupby(airtime)
+            rlt = pd.concat([rlt, group_data.max().dropna()])
+        return rlt.drop_duplicates(keep='first')
 
     def cnt_of_cols(self, cols, airtime_bin_size, filters=None, time_col='AirTime'):
         '''按照时间粒度计算指定列的次数
@@ -316,7 +368,10 @@ class LogFile(object):
             else:
                 airtime = data[cols[0]].map(self.dectime) // airtime_bin_size
 
-            group_data = data[cols[1]].groupby(airtime).apply(lambda x: x.value_counts()).unstack(level=1, fill_value=0)
+            group_data = data[cols[1]].groupby(airtime).apply(lambda x: x.value_counts())
+            if 0 == group_data.size:
+                continue
+            group_data = group_data.unstack(level=1, fill_value=0)
             rlt = rlt.add(group_data, fill_value=0)
             if ratio:
                 rlt = rlt.apply(lambda x: x/x.sum(), axis=1)
@@ -342,6 +397,10 @@ class LogFile(object):
             data = self.mean_of_cols([col], airtime_bin_size, by=mean_by, filters=filters)
         elif agg_func == AGG_FUNC_CNT:
             data = self.cnt_of_cols([col], airtime_bin_size, filters=filters)
+        elif agg_func == AGG_FUNC_MIN:
+            data = self.min_of_cols([col], airtime_bin_size, filters=filters)
+        elif agg_func == AGG_FUNC_MAX:
+            data = self.max_of_cols([col], airtime_bin_size, filters=filters)
         else:
             return
 
