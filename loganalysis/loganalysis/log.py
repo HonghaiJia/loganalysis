@@ -314,8 +314,8 @@ class LogFile(object):
             else:
                 airtime = data[time_col].map(self.dectime) // airtime_bin_size
             group_data = data[cols].groupby(airtime)
-            rlt = pd.concat([rlt, group_data.min().dropna()])
-        return rlt.drop_duplicates(keep='first')
+            rlt = pd.combine_first(group_data.min().dropna())
+        return rlt
         
     def max_of_cols(self, cols, airtime_bin_size, filters=None, time_col='AirTime'):
         '''按照时间粒度计算指定列的最大值
@@ -333,7 +333,7 @@ class LogFile(object):
             else:
                 airtime = data[time_col].map(self.dectime) // airtime_bin_size
             group_data = data[cols].groupby(airtime)
-            rlt = pd.concat([rlt, group_data.max()])
+            rlt = pd.combine_first(group_data.max().dropna())
         return rlt
 
     def cnt_of_cols(self, cols, airtime_bin_size, filters=None, time_col='AirTime'):

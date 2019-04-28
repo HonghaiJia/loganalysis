@@ -196,6 +196,33 @@ class UlSchd():
             data = data.drop(np.setdiff1d(matchcols, ['UEGID']), axis=1)
             merged = pd.merge(data, ackdata, how='left', left_on=schdcols, right_on=demcols)
             yield merged[cols]
+            
+    def show_throuput(self, airtime_bin_size=1000):
+        ''' 输出流量图
+
+            根据时间粒度，输出流量图
+            Args：
+                airtime_bin_size: 时间粒度
+            Return:
+                流量图
+        '''
+        cols = [r'TB.u16TbSize', 'AirTime']
+        
+        rlt = pd.DataFrame()
+        for data in self.match_schd_and_ack(cols=cols):
+            if airtime_bin_size == 0:
+                airtime = np.zeros(len(data.index))
+            else:
+                airtime = data[cols[1]].map(self.dectime) // airtime_bin_size
+            group_data = data[cols[0]].groupby(airtime)
+            rlt = rlt.add(group_data.sum().dropna())
+            
+        ax = plt.subplots(1, 1)[1]
+        xlabel = 'Airtime/{bin}ms'.format(bin=airtime_bin_size)
+        ax.set_ylabel('Throuput')
+        rlt[cols[0]].index.name = xlabel
+        rlt[cols[0]].plot(ax=ax, kind='line', style='ko--')
+        return
 
     def bler_of_mcs(self):
         '''不同mcs下的bler'''
