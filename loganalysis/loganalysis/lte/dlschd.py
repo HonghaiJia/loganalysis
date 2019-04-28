@@ -275,7 +275,35 @@ class DlSchd():
                     break
 
         return selfdata
+    
+    def show_throuput(self, airtime_bin_size=1000):
+        ''' 输出流量图
 
+            根据时间粒度，输出流量图
+            Args：
+                airtime_bin_size: 时间粒度
+            Return:
+                流量图
+        '''
+        cols = [r'TB.u16TbSize', 'AirTime']
+        
+        rlt = pd.Series()
+        for data in self.match_schd_and_ack(cols=cols):
+            if airtime_bin_size == 0:
+                airtime = np.zeros(len(data.index))
+            else:
+                airtime = data[cols[1]].map(self._log.dectime) // airtime_bin_size
+            group_data = data[cols[0]].groupby(airtime)
+            rlt = rlt.add(group_data.sum(), fill_value=0)
+            
+        ax = plt.subplots(1, 1)[1]
+        xlabel = 'Airtime/{bin}ms'.format(bin=airtime_bin_size)
+        ax.set_ylabel('Throuput/Kbits')
+        rlt = rlt * 8 / 1000
+        rlt.index.name = xlabel
+        rlt.plot(ax=ax, kind='line', style='ko--')
+        return
+    
 class DlSchdCell(DlSchd):
     '''下行调度分析类'''
 
