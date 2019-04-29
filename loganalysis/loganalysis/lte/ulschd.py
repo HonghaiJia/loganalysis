@@ -207,7 +207,6 @@ class UlSchd():
                 流量图
         '''
         cols = [r'TB.u16TbSize', 'AirTime']
-        
         rlt = pd.Series()
         for data in self.match_schd_and_ack(cols=cols):
             if airtime_bin_size == 0:
