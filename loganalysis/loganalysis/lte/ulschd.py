@@ -8,13 +8,15 @@ from loganalysis.const import *
 class UlSchd():
     '''上行调度Log分析类'''
 
-    def __init__(self, log, cell, uegid=None):
+    def __init__(self, log, cell=None, uegid=None):
         self._type = LTE_FILE_ULSCHD
         self._log = log
         self._id_filter = {}
         self._cell = cell
-        self._id_filter['CellId'] = [cell.cellid]
-        if uegid is not None:
+        
+        if cell:
+            self._id_filter['CellId'] = [cell.cellid]
+        if uegid:
             self._id_filter['UEGID'] = [uegid]
 
     @property
@@ -305,6 +307,10 @@ class UlSchd():
             return：
                 demtime, uegid：reason 列表
         '''
+        
+        if self._cell is None:
+            return 'cell is None, cant analysize'
+        
         cols = ['CRCI.u32DemTime', 'UEGID']
         selfdata = self.find_selfmaintain()[cols].drop_duplicates().astype(np.uint32)
         ulcrcdem_mismatch = self._cell.find_ulcrcdem_mismatch()

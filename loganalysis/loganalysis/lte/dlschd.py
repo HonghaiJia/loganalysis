@@ -13,8 +13,9 @@ class DlSchd():
         self._log = log
         self._id_filter = {}
         self._cell = cell
-        self._id_filter['CellId'] = [cell.cellid]
-        if uegid is not None:
+        if cell:
+            self._id_filter['CellId'] = [cell.cellid]
+        if uegid:
             self._id_filter['UEGID'] = [uegid]
 
     @property
@@ -256,6 +257,10 @@ class DlSchd():
             return：
                 demtime, uegid：reason 列表
         '''
+        
+        if self._cell is None:
+            return 'cell is None, cant analysize '
+        
         cols = ['ACK.u32DemTime', 'UEGID']
         selfdata = self.find_selfmaintain()[cols].drop_duplicates().astype(np.uint32)
         dlackdem_mismatch = self._cell.find_dlackdem_mismatch()
@@ -398,7 +403,7 @@ class DlSchdUe(DlSchd):
         ax[2].set_ylabel('cp1report ta/ts')
         rlt[cols[3]].plot(ax=ax[2], kind='line', style='o--')
         
-        return rlt
+        return
 
     def is_bsr_enough(self):
         '''判断UE的bsr是否充足,schdbsr <= rlcbsr'''

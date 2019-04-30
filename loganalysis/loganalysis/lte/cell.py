@@ -170,7 +170,7 @@ class Cell(object):
             self._ues[uegid] = Ue(ullog, dllog, self, uegid)
             return self._ues[uegid]
         else:
-            return '非法CellId值，此小区不存在'
+            return '非法uegid值，此ue不存在'
 
     def _mismatch_idx(self, schdcols, schddata, matchcols, matchlog):
         for matchdata in matchlog.gen_of_cols(matchcols):

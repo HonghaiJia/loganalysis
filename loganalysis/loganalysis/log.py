@@ -242,6 +242,29 @@ class LogFile(object):
             data = data[(airtime <= end_airtime) & (airtime >= start_airtime)]
             rlt = pd.concat([rlt, data], ignore_index=True)
         return rlt
+    
+    def set_airtimes_interval(self, start, end):
+        '''指定当前log的时间范围
+            Args：
+                start:起始时间
+                end:截止时间
+            Returns:
+                无
+        '''
+        assert(start <= end)
+        filters = {'AirTime': np.arange(start, end)}
+        self._id_filter.update(filters)
+        return
+    
+    def reset_airtimes_interval(self):
+        '''重置当前log的时间范围
+            Args：
+                无
+            Returns:
+                无
+        '''
+        self._id_filter.pop('AirTime')
+        return
         
     def get_data_of_cols(self, cols, val_filter=None):
         '''获取指定cols的数据
