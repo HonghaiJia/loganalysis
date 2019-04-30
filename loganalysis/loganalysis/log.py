@@ -314,11 +314,7 @@ class LogFile(object):
             else:
                 airtime = data[time_col].map(self.dectime) // airtime_bin_size
             group_data = data[cols].groupby(airtime)
-<<<<<<< HEAD
             rlt = rlt.combine_first(group_data.min().dropna())
-=======
-            rlt = pd.combine_first(group_data.min().dropna())
->>>>>>> 0b54d7d7e2d6f610d1237965aa5468eaa19234f9
         return rlt
         
     def max_of_cols(self, cols, airtime_bin_size, filters=None, time_col='AirTime'):
@@ -337,11 +333,7 @@ class LogFile(object):
             else:
                 airtime = data[time_col].map(self.dectime) // airtime_bin_size
             group_data = data[cols].groupby(airtime)
-<<<<<<< HEAD
             rlt = rlt.combine_first(group_data.max().dropna())
-=======
-            rlt = pd.combine_first(group_data.max().dropna())
->>>>>>> 0b54d7d7e2d6f610d1237965aa5468eaa19234f9
         return rlt
 
     def cnt_of_cols(self, cols, airtime_bin_size, filters=None, time_col='AirTime'):

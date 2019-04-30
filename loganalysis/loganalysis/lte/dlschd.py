@@ -381,17 +381,24 @@ class DlSchdUe(DlSchd):
             Yields：
                 每个TTI文件画一张趋势图，通过next()来获取下一张趋势图
         '''
-        cols = ['AirTime', 'SCHD.u8Tac', 'TA.as16Cp0RptTa', 'TA.as16Cp0FltTa']
-
-        def gen_of_ta():
-            for tadata in self._log.gen_of_cols(cols):
-                tadata[cols[0]] = tadata[cols[0]].map(self._log.dectime)
-                tadata[cols[1]] = tadata[cols[1]].map(lambda x: (x-31)*16)
-                tadata = tadata.set_index(cols[0])
-                yield tadata
-
-        for data in gen_of_ta():
-            data.plot(style='o--')
+        cols = ['AirTime', 'SCHD.u8Tac', 'TA.as16Cp0RptTa', 'TA.as16Cp1RptTa']
+        rlt = self._log.get_data_of_cols(cols)
+        rlt[cols[0]] = rlt[cols[0]].map(self._log.dectime)
+        rlt[cols[1]] = rlt[cols[1]].map(lambda x: (x-31)*16)
+        rlt = rlt.set_index(cols[0])
+        rlt[rlt==-32767] = None    
+        ax = plt.subplots(3, 1)[1]
+        rlt.index.name = 'Airtime/ms'
+        ax[0].set_ylabel('tac/ts')
+        rlt[cols[1]].plot(ax=ax[0], kind='line', style='o--')
+        
+        ax[1].set_ylabel('cp0report ta/ts')
+        rlt[cols[2]].plot(ax=ax[1], kind='line', style='o--')
+        
+        ax[2].set_ylabel('cp1report ta/ts')
+        rlt[cols[3]].plot(ax=ax[2], kind='line', style='o--')
+        
+        return rlt
 
     def is_bsr_enough(self):
         '''判断UE的bsr是否充足,schdbsr <= rlcbsr'''
