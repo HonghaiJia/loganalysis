@@ -48,7 +48,7 @@ class Ue(object):
         cols = ['AirTime', 'CellId']
         for log in logs:
             for data in self.dl.log.gen_of_cols(cols):
-                data[cols[0]] = data[cols[0]]//16
+                data[cols[0]] = data[cols[0]]//1600
                 group_data = data[cols[1]].groupby(data[cols[0]]).apply(lambda x: x.value_counts())
                 if 0 == group_data.size:
                     continue

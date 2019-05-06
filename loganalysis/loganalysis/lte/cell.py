@@ -360,34 +360,16 @@ class Cell(object):
         rlt = pd.DataFrame()
         for log in logs:
             for data in self.dl.log.gen_of_cols(cols):
-                data = data.groupby(cols[1])
-                start = data[cols[0]].first()
-                end = data[cols[0]].last()
-                for uegid in start.index:
-                    if uegid not in rlt.index:
-                        rlt.at[uegid, 'start'] = start[uegid]
-                        rlt.at[uegid, 'end'] = end[uegid]
-                    else:
-                        rlt.at[uegid, 'start'] = min(start[uegid], rlt.at[uegid, 'start'])
-                        rlt.at[uegid, 'end'] = max(end[uegid], rlt.at[uegid, 'end'])
-
-        temp = pd.DataFrame()
-        for idx, uegid in enumerate(rlt.index):
-            temp.at[rlt.at[uegid, 'start'], uegid] = 0
-            temp.at[rlt.at[uegid, 'end'], uegid] = idx + 1
-
-        def fill_na_val(uedata):
-            maxidx = uedata.idxmax()
-            minidx = uedata.idxmin()
-            uedata[minidx:maxidx+1] = uedata.max()
-            return uedata
-
-        temp.columns.name = 'UEGID'
-        temp = temp.reindex(np.sort(temp.index)).apply(fill_na_val)
-        temp.index.name = 'AirTime'
+                data = data.drop_duplicates().pivot(cols[0], cols[1], cols[1])
+                rlt = rlt.combine_first(data)
+                
+        for idx, col in enumerate(rlt.columns):
+            rlt[col] = idx + 1
+            
+        rlt.columns.name = 'UEGID'
+        rlt.index.name = 'AirTime'
         fig, ax = plt.subplots(1, 1)
-        ax.set_ylim([0, len(rlt.index)+1])
-        temp.plot(ax=ax, kind='line', title='Ue_Alive_time')
+        rlt.plot(ax=ax, kind='line', title='Ue_Alive_time')
 
     def describle(self):
         '''小区整体信息描述'''
