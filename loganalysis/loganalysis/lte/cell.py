@@ -391,3 +391,35 @@ class Cell(object):
         ulcrcdem_mismatch = self.find_ulcrcdem_mismatch()
         rlt['ulcrcdem_mismatch_cnt'] = 0 if ulcrcdem_mismatch is None else len(ulcrcdem_mismatch.index)
         return rlt.astype(np.uint32)
+    
+    def set_airtimes_interval(self, start, end):
+        '''指定当前log的时间范围
+            Args：
+                start:起始时间
+                end:截止时间
+            Returns:
+                无
+        '''
+        assert(start <= end)
+        filters = {'AirTime': np.arange(start, end)}
+        if self._dl.log:
+            self._dl.log._id_filter.update(filters)
+            
+        if self._ul.log:
+            self._ul.log._id_filter.update(filters)
+        return
+    
+    def reset_airtimes_interval(self):
+        '''重置当前log的时间范围
+            Args：
+                无
+            Returns:
+                无
+        '''
+    
+        if self._dl.log and 'AirTime' in self._dl.log._id_filter:
+            self._dl.log._id_filter.pop('AirTime')
+            
+        if self._ul.log and 'AirTime' in self._ul.log._id_filter:
+            self._ul.log._id_filter.pop('AirTime')            
+        return

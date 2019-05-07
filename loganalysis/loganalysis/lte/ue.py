@@ -62,3 +62,35 @@ class Ue(object):
         rlt.plot(ax=ax, kind='line', title='Ue_Alive_time')
         
         return
+    
+    def set_airtimes_interval(self, start, end):
+        '''指定当前log的时间范围
+            Args：
+                start:起始时间
+                end:截止时间
+            Returns:
+                无
+        '''
+        assert(start <= end)
+        filters = {'AirTime': np.arange(start, end)}
+        if self._dllog:
+            self._dllog._id_filter.update(filters)
+            
+        if self._ullog:
+            self._ullog._id_filter.update(filters)
+        return
+    
+    def reset_airtimes_interval(self):
+        '''重置当前log的时间范围
+            Args：
+                无
+            Returns:
+                无
+        '''
+    
+        if self._dllog and 'AirTime' in self._dllog._id_filter:
+            self._dllog._id_filter.pop('AirTime')
+            
+        if self._ullog and 'AirTime' in self._ullog._id_filter:
+            self._ullog._id_filter.pop('AirTime')            
+        return
