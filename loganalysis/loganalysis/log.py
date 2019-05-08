@@ -28,6 +28,7 @@ class Log(object):
         self._directory = directory
         self._product_type = product_type
         self._logfiles={}
+        self._time_interval = time_interval
 
     @property
     def product_type(self):
@@ -37,7 +38,7 @@ class Log(object):
     def directory(self):
         return self._directory
 
-    def _filenames_of_type(self, filetype, time_interval=None):
+    def _filenames_of_type(self, filetype):
         '''获取指定文件类型的所有文件名
             Args：
                 filetype：文件类型
@@ -51,9 +52,9 @@ class Log(object):
                 continue
             if -1 == name.find(filetype):
                 continue
-            if time_interval is not None:
+            if self._time_interval:
                 time = np.uint64(name.rsplit(r'.')[0].rsplit(r'_')[-1])
-                if time < time_interval[0] or time > time_interval[1]:
+                if time < self._time_interval[0] or time > self._time_interval[1]:
                     continue
             names_of_filetype.append(name)
         return names_of_filetype
@@ -90,6 +91,7 @@ class LogFile(object):
         self._type = type
         self._directory = directory
         self._id_filter = id_filter
+        self._time_filter = None
         self._size = sum([os.path.getsize(os.path.join(directory, file)) for file in files])
         self._pctimes = [-1, -1]
         self._airtimes = [-1, -1]
@@ -189,11 +191,19 @@ class LogFile(object):
         if self._id_filter:
             filters.update(self._id_filter)
         totcols = cols
+        
+        aircol = 'AirTime'
+        if self._time_filter and aircol not in totcols :
+            totcols.apend(aircol) 
+            
         if cols is not None:
             totcols = list(set.union(set(filters), set(cols)))
         for file in self._files:
             filename = os.path.join(self._directory, file)
             data = pd.read_csv(filename, na_values='-', usecols=totcols)
+            if self._time_filter:
+                start, end = self._time_filter
+                data = data[(start<= data[aircol]) & (data[aircol]<=end)]
             if not filters:
                 yield data
                 continue
@@ -252,8 +262,7 @@ class LogFile(object):
                 无
         '''
         assert(start <= end)
-        filters = {'AirTime': np.arange(start, end)}
-        self._id_filter.update(filters)
+        self._time_filter = (start, end)
         return
     
     def reset_airtimes_interval(self):
@@ -263,7 +272,7 @@ class LogFile(object):
             Returns:
                 无
         '''
-        self._id_filter.pop('AirTime')
+        self._time_filter = None
         return
         
     def get_data_of_cols(self, cols, val_filter=None):

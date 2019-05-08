@@ -401,12 +401,11 @@ class Cell(object):
                 无
         '''
         assert(start <= end)
-        filters = {'AirTime': np.arange(start, end)}
         if self._dl.log:
-            self._dl.log._id_filter.update(filters)
+            self._dl.log.set_airtimes_interval(start, end)
             
         if self._ul.log:
-            self._ul.log._id_filter.update(filters)
+            self._ul.log.set_airtimes_interval(start, end)
         return
     
     def reset_airtimes_interval(self):
@@ -417,9 +416,9 @@ class Cell(object):
                 无
         '''
     
-        if self._dl.log and 'AirTime' in self._dl.log._id_filter:
-            self._dl.log._id_filter.pop('AirTime')
+        if self._dl.log:
+            self._dl.log.reset_airtimes_interval()
             
-        if self._ul.log and 'AirTime' in self._ul.log._id_filter:
-            self._ul.log._id_filter.pop('AirTime')            
+        if self._ul.log:
+            self._ul.log.reset_airtimes_interval()           
         return

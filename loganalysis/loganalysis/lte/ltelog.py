@@ -25,13 +25,29 @@ class LteLog(Log):
                time_interval: 时间范围[start, end],格式为yyyymmddhhmmss
                product_type: 产品类型['Macro', 'Micro']，默认为micro
         '''
+        if time_interval:
+            assert(len(time_interval)==2)
+            assert(time_interval[0] <= time_interval[1])
+            assert(0<=time_interval[0]%100<60)
+            assert(0<=time_interval[0]//100%100<60)
+            assert(0<=time_interval[0]//10000%100<24)
+            assert(0<=time_interval[0]//1000000%100<32)
+            assert(0<=time_interval[0]//100000000%100<12)
+            assert(2019<=time_interval[0]//10000000000<2021)
+            assert(0<=time_interval[1]%100<60)
+            assert(0<=time_interval[1]//100%100<60)
+            assert(0<=time_interval[1]//10000%100<24)
+            assert(0<=time_interval[1]//1000000%100<32)
+            assert(0<=time_interval[1]//100000000%100<12)
+            assert(2019<=time_interval[1]//10000000000<2021)
+            
         super(LteLog, self).__init__(directory, time_interval, product_type)
         self._cells = {}
         self._cellids = set()
         self._ues = {}
         self._cell_and_ue_ids = pd.DataFrame()
         for filetype in LTE_FILE_TYPES:
-            filenames = self._filenames_of_type(filetype, time_interval)
+            filenames = self._filenames_of_type(filetype)
             if filenames:
                 logfile = LteFile(filetype, directory, filenames)
                 if logfile.lines == 0:

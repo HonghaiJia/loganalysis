@@ -72,12 +72,11 @@ class Ue(object):
                 无
         '''
         assert(start <= end)
-        filters = {'AirTime': np.arange(start, end)}
         if self._dllog:
-            self._dllog._id_filter.update(filters)
+            self._dllog.set_airtimes_interval(start, end)
             
         if self._ullog:
-            self._ullog._id_filter.update(filters)
+            self._ullog.set_airtimes_interval(start, end)
         return
     
     def reset_airtimes_interval(self):
@@ -88,9 +87,9 @@ class Ue(object):
                 无
         '''
     
-        if self._dllog and 'AirTime' in self._dllog._id_filter:
-            self._dllog._id_filter.pop('AirTime')
+        if self._dllog:
+            self._dllog.reset_airtimes_interval()
             
-        if self._ullog and 'AirTime' in self._ullog._id_filter:
-            self._ullog._id_filter.pop('AirTime')            
+        if self._ullog:
+            self._ullog.reset_airtimes_interval()       
         return
