@@ -13,13 +13,13 @@ class Ni(object):
         self._cell = cell
         self._log = log
 
-    def show(self, airtime_bin_size=1000):
+    def show(self, airtime_bin_size=1):
         '''
         NI 图形化描述
 
             Args：
                 rb: True:按照RB粒度，否则全带宽
-                airtime_bin_size: 时间粒度，默认1000ms
+                airtime_bin_size: 时间粒度，默认1s
             Return:
                 两张图，NI_vs_RB, NI_vs_Time
         '''
@@ -44,14 +44,14 @@ class Ni(object):
         time_data = None
         cols = [nicols[i] for i in [0, int(len(rb_data.index)/2), len(rb_data.index)-1]]
         for data in self._log.gen_of_cols(cols+['AirTime']):
-            data = data[cols].groupby(data['AirTime'].map(self._log.dectime)//airtime_bin_size).max()
+            data = data[cols].groupby(data['AirTime']//(airtime_bin_size*1600)).max()
             if time_data is None:
                 time_data = data
             else:
                 time_data = [max(time_data[i], data[i]) for i in data.index]
 
         ax = plt.subplots(1, 1)[1]
-        ax.set(xlabel='AirTime/{bin}ms'.format(bin=airtime_bin_size), ylabel='NI',
+        ax.set(xlabel='AirTime/{bin}s'.format(bin=airtime_bin_size), ylabel='NI',
                title='NI vs Time', xlim=[0, len(time_data.columns)])
         cols = [col.split(r'.')[1] for col in time_data.columns]
         time_data.columns = cols

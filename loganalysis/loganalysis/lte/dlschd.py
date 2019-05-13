@@ -26,11 +26,11 @@ class DlSchd():
     def log(self):
         return self._log
 
-    def bler_of_subframe(self, airtime_bin_size=1000, subframe = 255):
+    def bler_of_subframe(self, airtime_bin_size=1, subframe = 255):
         '''计算指定时间粒度下特定子帧的bler,按照传输方案分别计算
 
             Args:
-                airtime_bin_size：统计粒度，默认为1000ms
+                airtime_bin_size：统计粒度，默认为1s
                 subfrm: 255(不区分子帧), <10(特定subframe)
             Returns：
                 bler， DataFrame格式，列为传输方案，行为时间
@@ -44,7 +44,7 @@ class DlSchd():
             if 0 == data.size:
                 continue
             ack_sum = data[ack_cols[1]] + data[ack_cols[2]]
-            cnt = ack_sum.groupby(data[ack_cols[0]].map(self._log.dectime) // airtime_bin_size).apply(
+            cnt = ack_sum.groupby(data[ack_cols[0]] // (airtime_bin_size*1600)).apply(
                 lambda x: x.value_counts()).unstack(level=1)
             rlt = rlt.add(cnt, fill_value=0)
 
@@ -57,11 +57,11 @@ class DlSchd():
 
         return rlt.reindex(columns=[0, 1, 2, 4, 255, 256, 257]).fillna(0).apply(func, axis=1)
 
-    def show_mimo(self, airtime_bin_size=1000):
+    def show_mimo(self, airtime_bin_size=1):
         '''图形化输出MIMO自适应信息
 
             Args:
-                airtime_bin_size：统计粒度，默认为1000ms
+                airtime_bin_size：统计粒度，默认为1s
             Returns：
                 趋势图：x轴为时间粒度，y轴为各传输方案比例
         '''
@@ -73,16 +73,16 @@ class DlSchd():
         ratio.columns = ratio.columns.map(lambda x: idxs[x])
 
         ax = plt.subplots(1, 1)[1]
-        xlabel = 'Airtime/{bin}ms'.format(bin=airtime_bin_size)
+        xlabel = 'Airtime/{bin}s'.format(bin=airtime_bin_size)
         ax.set_xlabel(xlabel)
         ax.set_ylabel('Ratio')
         ratio.plot(ax=ax, kind='line', style='o--')
 
-    def show_amc(self, airtime_bin_size=1000):
+    def show_amc(self, airtime_bin_size=1):
         '''画图描述指定粒度下的调度Mcs
 
             Args:
-                airtime_bin_size：统计粒度，默认为1000ms
+                airtime_bin_size：统计粒度，默认为1s
             Returns：
                 趋势图：x轴为时间粒度，y轴为平均std_mcs，delta
         '''
@@ -94,22 +94,22 @@ class DlSchd():
         delta = mean_data[[cols[0], cols[2]]].dropna(how='all', axis=1)/100
         ax[0].set_ylabel('Delta')
         ax[0].set_ylim([-28, 28])
-        xlabel = 'Airtime/{bin}ms'.format(bin=airtime_bin_size)
+        xlabel = 'Airtime/{bin}s'.format(bin=airtime_bin_size)
         ax[0].set_xlabel(xlabel)
         delta.plot(ax=ax[0], kind='line', style='o--')
 
         ax[1].set_ylim([0, 28])
-        xlabel = 'Airtime/{bin}ms'.format(bin=airtime_bin_size)
+        xlabel = 'Airtime/{bin}s'.format(bin=airtime_bin_size)
         ax[1].set_xlabel(xlabel)
         stdmcs = mean_data[[cols[1], cols[3]]].dropna(how='all', axis=1)
         ax[1].set_ylabel('Std_mcs')
         stdmcs.plot(ax=ax[1], kind='line', style='o--')
  
-    def show_bler_of_subframe(self, airtime_bin_size=1000, subframe = 255, ax=None):
+    def show_bler_of_subframe(self, airtime_bin_size=1, subframe = 255, ax=None):
         '''画图描述指定粒度下的子帧级bler
 
             Args:
-                airtime_bin_size：统计粒度，默认为1000ms
+                airtime_bin_size：统计粒度，默认为1s
                 subfrm: 255(不区分子帧), <10(特定subframe)
             Returns：
                 趋势图：x轴为时间粒度，y轴为bler(两种传输方案分别统计）
@@ -118,17 +118,17 @@ class DlSchd():
             fig, ax = plt.subplots(1, 1)
         ax.set_ylabel('Bler')
         ax.set_ylim([0, 1])
-        xlabel = 'Airtime/{bin}ms'.format(bin=airtime_bin_size)
+        xlabel = 'Airtime/{bin}s'.format(bin=airtime_bin_size)
         bler_data = self.bler_of_subframe(airtime_bin_size=airtime_bin_size, subframe = subframe)
         bler_data.index.name = xlabel
         bler_data.plot(ax=ax, kind='line', style='o--')
 
-    def show_schd_uecnt(self, airtime_bin_size=1000):
+    def show_schd_uecnt(self, airtime_bin_size=1):
         '''画图描述指定粒度下的调度UE次数
 
             Args:
                 col_name: 待分析字段
-                airtime_bin_size：统计粒度，默认为1000ms
+                airtime_bin_size：统计粒度，默认为1s
             Returns：
                 直方图（kde）：x轴调度UE数，y轴为比例
                 趋势图：x轴为时间粒度，y轴为调度UE次数
@@ -137,12 +137,12 @@ class DlSchd():
         self._log.show_trend(col_name, AGG_FUNC_CNT, airtime_bin_size)
         return
 
-    def show_schd_rbnum(self, airtime_bin_size=1000):
+    def show_schd_rbnum(self, airtime_bin_size=1):
         '''画图描述指定粒度下的调度RB数
 
             Args:
                 col_name: 待分析字段
-                airtime_bin_size：统计粒度，默认为1000ms
+                airtime_bin_size：统计粒度，默认为1s
             Returns：
                 直方图（kde）：x轴调度RB数，y轴为调度次数
                 趋势图：x轴为时间粒度，y轴为平均RB数
@@ -236,11 +236,11 @@ class DlSchd():
             rlt = rlt.append(data)
         return rlt
 
-    def find_bler_over(self, thresh, airtime_bin_size=1000):
+    def find_bler_over(self, thresh, airtime_bin_size=1):
         '''查找bler超过一定门限的时间,时间粒度可以指定
             Args：
                 thresh：门限，（0,1）之间
-                airtime_bin_size：时间粒度，默认1000ms
+                airtime_bin_size：时间粒度，默认1s
             Returns：
                 Series格式，{airtime：bler}
         '''
@@ -281,12 +281,12 @@ class DlSchd():
 
         return selfdata
     
-    def show_throuput(self, airtime_bin_size=1000):
+    def show_throuput(self, airtime_bin_size=1):
         ''' 输出流量图
 
             根据时间粒度，输出流量图
             Args：
-                airtime_bin_size: 时间粒度
+                airtime_bin_size: 时间粒度s
             Return:
                 流量图
         '''
@@ -296,12 +296,12 @@ class DlSchd():
             if airtime_bin_size == 0:
                 airtime = np.zeros(len(data.index))
             else:
-                airtime = data[cols[1]].map(self._log.dectime) // airtime_bin_size
+                airtime = data[cols[1]] // (airtime_bin_size*1600)
             group_data = data[cols[0]].groupby(airtime)
             rlt = rlt.add(group_data.sum(), fill_value=0)
             
         ax = plt.subplots(1, 1)[1]
-        xlabel = 'Airtime/{bin}ms'.format(bin=airtime_bin_size)
+        xlabel = 'Airtime/{bin}s'.format(bin=airtime_bin_size)
         ax.set_ylabel('Throuput/Kbits')
         rlt = rlt * 8 / 1000
         rlt.index.name = xlabel
@@ -393,7 +393,7 @@ class DlSchdUe(DlSchd):
         rlt = rlt.set_index(cols[0])
         rlt[rlt==-32767] = None    
         ax = plt.subplots(3, 1)[1]
-        rlt.index.name = 'Airtime/ms'
+        rlt.index.name = 'Airtime/s'
         ax[0].set_ylabel('tac/ts')
         rlt[cols[1]].plot(ax=ax[0], kind='line', style='o--')
         

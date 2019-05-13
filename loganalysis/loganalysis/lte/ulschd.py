@@ -27,34 +27,59 @@ class UlSchd():
     def log(self):
         return self._log
 
-    def show_bler(self, airtime_bin_size=1000, ax=None):
+    def show_bler(self, airtime_bin_size=1, ax=None):
         ack_cols = ['CRCI.u32DemTime', 'CRCI.u8AckInfo']
         rlt = pd.DataFrame()
         for data in self._log.gen_of_cols(ack_cols):
             data = data.dropna(how='any')
             if 0 == data.size:
                 continue
-            cnt = data[ack_cols[1]].groupby(data[ack_cols[0]].map(self._log.dectime) // airtime_bin_size)\
+            cnt = data[ack_cols[1]].groupby(data[ack_cols[0]]// (airtime_bin_size*1600))\
                 .apply(lambda x: x.value_counts()).unstack(level=1)
             rlt = rlt.add(cnt, fill_value=0, level=0)
 
         def func(data):
             return (data[0] + data[2]) / ((data[0]+data[1]+data[2])+1)
         bler_data = rlt.reindex(columns=[0, 1, 2], fill_value=0).apply(func, axis=1)
+        bler_data.index.astype(int)
 
         if ax is None:
             ax = plt.subplots(1, 1)[1]
         ax.set_ylabel('Bler')
         ax.set_ylim([0, 1])
-        xlabel = 'Airtime/{bin}ms'.format(bin=airtime_bin_size)
+        xlabel = 'Airtime/{bin}s'.format(bin=airtime_bin_size)
+        bler_data.index.name = xlabel
+        bler_data.plot(ax=ax, kind='line', style='o--')
+        
+    def show_dci0lost(self, airtime_bin_size=1, ax=None):
+        ack_cols = ['CRCI.u32DemTime', 'CRCI.u8AckInfo']
+        rlt = pd.DataFrame()
+        for data in self._log.gen_of_cols(ack_cols):
+            data = data.dropna(how='any')
+            if 0 == data.size:
+                continue
+            cnt = data[ack_cols[1]].groupby(data[ack_cols[0]]// (airtime_bin_size*1600))\
+                .apply(lambda x: x.value_counts()).unstack(level=1)
+            rlt = rlt.add(cnt, fill_value=0, level=0)
+
+        def func(data):
+            return (data[2]) / ((data[0]+data[1]+data[2])+1)
+        bler_data = rlt.reindex(columns=[0, 1, 2], fill_value=0).apply(func, axis=1)
+        bler_data.index.astype(int)
+
+        if ax is None:
+            ax = plt.subplots(1, 1)[1]
+        ax.set_ylabel('dci0lost_ratio')
+        ax.set_ylim([0, 1])
+        xlabel = 'Airtime/{bin}s'.format(bin=airtime_bin_size)
         bler_data.index.name = xlabel
         bler_data.plot(ax=ax, kind='line', style='o--')
 
-    def show_amc(self, airtime_bin_size=1000):
+    def show_amc(self, airtime_bin_size=1):
         '''画图描述指定粒度下的调度RB数
 
             Args:
-                airtime_bin_size：统计粒度，默认为1000ms
+                airtime_bin_size：统计粒度，默认为1s
             Returns：
                 趋势图：x轴为时间粒度，y轴为平均1rb_sinr, pl, delta, bler
         '''
@@ -65,32 +90,32 @@ class UlSchd():
         delta = mean_data[cols[1]] / 100
         ax[0].set_ylabel('Delta')
         ax[0].set_ylim([-28, 28])
-        xlabel = 'Airtime/{bin}ms'.format(bin=airtime_bin_size)
+        xlabel = 'Airtime/{bin}s'.format(bin=airtime_bin_size)
         ax[0].set_xlabel(xlabel)
         delta.plot(ax=ax[0], kind='line', style='o--')
 
         stdmcs = mean_data[cols[2]]
         ax[1].set_ylabel('Std_mcs')
         ax[1].set_ylim([0, 29])
-        xlabel = 'Airtime/{bin}ms'.format(bin=airtime_bin_size)
+        xlabel = 'Airtime/{bin}s'.format(bin=airtime_bin_size)
         ax[1].set_xlabel(xlabel)
         stdmcs.plot(ax=ax[1], kind='line', style='o--')
 
         singlerb_sinr = mean_data[cols[0]]
         ax[2].set_ylabel('1Rb_Sinr')
-        xlabel = 'Airtime/{bin}ms'.format(bin=airtime_bin_size)
+        xlabel = 'Airtime/{bin}s'.format(bin=airtime_bin_size)
         ax[2].set_xlabel(xlabel)
         singlerb_sinr.plot(ax=ax[2], kind='line', style='o--')
 
         self.show_bler(airtime_bin_size=airtime_bin_size, ax=ax[3])
         return
 
-    def show_schd_uecnt(self, airtime_bin_size=1000):
+    def show_schd_uecnt(self, airtime_bin_size=1):
         '''画图描述指定粒度下的调度UE次数
 
             Args:
                 col_name: 待分析字段
-                airtime_bin_size：统计粒度，默认为1000ms
+                airtime_bin_size：统计粒度，默认为1s
             Returns：
                 直方图（kde）：x轴调度UE数，y轴为比例
                 趋势图：x轴为时间粒度，y轴为调度UE次数
@@ -99,12 +124,12 @@ class UlSchd():
         self._log.show_trend(col_name, AGG_FUNC_CNT, airtime_bin_size)
         return
 
-    def show_schd_rbnum(self, airtime_bin_size=1000):
+    def show_schd_rbnum(self, airtime_bin_size=1):
         '''画图描述指定粒度下的调度RB数
 
             Args:
                 col_name: 待分析字段
-                airtime_bin_size：统计粒度，默认为1000ms
+                airtime_bin_size：统计粒度，默认为1s
             Returns：
                 直方图（kde）：x轴调度RB数，y轴为调度次数
                 趋势图：x轴为时间粒度，y轴为平均RB数
@@ -114,12 +139,12 @@ class UlSchd():
         #self._log.show_hist(col_name, xlim=[0, 100])
         return
         
-    def show_rpt_minbsr(self, lchgrp=3, airtime_bin_size=1000):
+    def show_rpt_minbsr(self, lchgrp=3, airtime_bin_size=1):
         '''画图描述指定粒度下的report bsr
 
             Args:
                 lchgrp: 待分析字段
-                airtime_bin_size：统计粒度，默认为1000ms
+                airtime_bin_size：统计粒度，默认为1s
             Returns：
                 趋势图：x轴为时间粒度，y轴为平均RB数
         '''
@@ -128,12 +153,12 @@ class UlSchd():
         self._log.show_trend(col_name, AGG_FUNC_MIN, airtime_bin_size, filters=filters)
         return
         
-    def show_rpt_maxbsr(self, lchgrp=3, airtime_bin_size=1000):
+    def show_rpt_maxbsr(self, lchgrp=3, airtime_bin_size=1):
         '''画图描述指定粒度下的report bsr
 
             Args:
                 lchgrp: 待分析lchgrpId
-                airtime_bin_size：统计粒度，默认为1000ms
+                airtime_bin_size：统计粒度，默认为1s
             Returns：
                 趋势图：x轴为时间粒度，y轴为平均RB数
         '''
@@ -199,12 +224,12 @@ class UlSchd():
             merged = pd.merge(data, ackdata, how='left', left_on=schdcols, right_on=demcols)
             yield merged[cols]
             
-    def show_throuput(self, airtime_bin_size=1000):
+    def show_throuput(self, airtime_bin_size=1):
         ''' 输出流量图
 
             根据时间粒度，输出流量图
             Args：
-                airtime_bin_size: 时间粒度
+                airtime_bin_size: 时间粒度s
             Return:
                 流量图
         '''
@@ -214,12 +239,12 @@ class UlSchd():
             if airtime_bin_size == 0:
                 airtime = np.zeros(len(data.index))
             else:
-                airtime = data[cols[1]].map(self._log.dectime) // airtime_bin_size
+                airtime = data[cols[1]] // (airtime_bin_size*1600)
             group_data = data[cols[0]].groupby(airtime)
             rlt = rlt.add(group_data.sum(), fill_value=0)
             
         ax = plt.subplots(1, 1)[1]
-        xlabel = 'Airtime/{bin}ms'.format(bin=airtime_bin_size)
+        xlabel = 'Airtime/{bin}s'.format(bin=airtime_bin_size)
         ax.set_ylabel('Throuput/Kbits')
         rlt.index.name = xlabel
         rlt = rlt * 8 / 1000

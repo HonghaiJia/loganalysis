@@ -194,7 +194,7 @@ class LogFile(object):
         
         aircol = 'AirTime'
         if self._time_filter and aircol not in totcols :
-            totcols.apend(aircol) 
+            totcols.append(aircol) 
             
         if cols is not None:
             totcols = list(set.union(set(filters), set(cols)))
@@ -293,7 +293,7 @@ class LogFile(object):
 
             Args:
                 cols:待汇总的列名
-                airtime_bin_size：时间粒度（ms), 0表示不区分时间粒度
+                airtime_bin_size：时间粒度（s), 0表示不区分时间粒度
                 by: 'cnt'：按照次数平均，'time':
                 filters：滤波条件，字典格式{‘列名0’：值， ‘列名1’：值...}
                 time_col: 聚合的时间列名，默认‘AirTime’
@@ -304,7 +304,7 @@ class LogFile(object):
             if airtime_bin_size == 0:
                 airtime = np.zeros(len(data.index))
             else:
-                airtime = data[time_col].map(self.dectime) // airtime_bin_size
+                airtime = data[time_col] // (airtime_bin_size*1600)
   
             group_data = data[cols].groupby(airtime)          
             rlt = rlt.add(group_data.sum(), fill_value=0)
@@ -316,7 +316,7 @@ class LogFile(object):
 
             Args:
                 cols:待汇总的列名
-                airtime_bin_size：时间粒度（ms), 0表示不区分时间粒度
+                airtime_bin_size：时间粒度（s), 0表示不区分时间粒度
                 filters：滤波条件，字典格式{‘列名0’：值， ‘列名1’：值...}
                 time_col: 聚合的时间列名，默认‘AirTime’
         '''
@@ -325,7 +325,7 @@ class LogFile(object):
             if airtime_bin_size == 0:
                 airtime = np.zeros(len(data.index))
             else:
-                airtime = data[time_col].map(self.dectime) // airtime_bin_size
+                airtime = data[time_col] // (airtime_bin_size*1600)
             group_data = data[cols].groupby(airtime)
             rlt = rlt.add(group_data.sum(), fill_value=0)
         return rlt.dropna()
@@ -335,7 +335,7 @@ class LogFile(object):
 
             Args:
                 cols:待汇总的列名
-                airtime_bin_size：时间粒度（ms), 0表示不区分时间粒度
+                airtime_bin_size：时间粒度（s), 0表示不区分时间粒度
                 filters：滤波条件，字典格式{‘列名0’：值， ‘列名1’：值...}
                 time_col: 聚合的时间列名，默认‘AirTime’
         '''
@@ -344,7 +344,7 @@ class LogFile(object):
             if airtime_bin_size == 0:
                 airtime = np.zeros(len(data.index))
             else:
-                airtime = data[time_col].map(self.dectime) // airtime_bin_size
+                airtime = data[time_col] // (airtime_bin_size*1600)
             group_data = data[cols].groupby(airtime)
             rlt = rlt.combine_first(group_data.min().dropna())
         return rlt
@@ -354,7 +354,7 @@ class LogFile(object):
 
             Args:
                 cols:待汇总的列名
-                airtime_bin_size：时间粒度（ms), 0表示不区分时间粒度
+                airtime_bin_size：时间粒度（s), 0表示不区分时间粒度
                 filters：滤波条件，字典格式{‘列名0’：值， ‘列名1’：值...}
                 time_col: 聚合的时间列名，默认‘AirTime’
         '''
@@ -363,7 +363,7 @@ class LogFile(object):
             if airtime_bin_size == 0:
                 airtime = np.zeros(len(data.index))
             else:
-                airtime = data[time_col].map(self.dectime) // airtime_bin_size
+                airtime = data[time_col] // (airtime_bin_size*1600)
             group_data = data[cols].groupby(airtime)
             rlt = rlt.combine_first(group_data.max().dropna())
         return rlt
@@ -372,7 +372,7 @@ class LogFile(object):
         '''按照时间粒度计算指定列的次数
 
             Args:
-                airtime_bin_size：时间粒度（ms), 0表示不区分时间粒度
+                airtime_bin_size：时间粒度（s), 0表示不区分时间粒度
                 filters：滤波条件，字典格式{‘列名0’：值， ‘列名1’：值...}
         '''
         cnt = pd.DataFrame()
@@ -380,7 +380,7 @@ class LogFile(object):
             if airtime_bin_size == 0:
                 airtime = np.zeros(len(data.index))
             else:
-                airtime = data[time_col].map(self.dectime) // airtime_bin_size
+                airtime = data[time_col] // (airtime_bin_size*1600)
             group_data = data[cols].groupby(airtime)
             cnt = cnt.add(group_data.count(), fill_value=0)
         return cnt
@@ -389,7 +389,7 @@ class LogFile(object):
         '''按照时间粒度计算指定列的直方图数据
 
             ratio: 是否计算比例, 默认Ratio为True
-            airtime_bin_size：时间粒度（ms), 0表示不区分时间粒度
+            airtime_bin_size：时间粒度（s), 0表示不区分时间粒度
             filters：滤波条件，字典格式{‘列名0’：值， ‘列名1’：值...}
         '''
         cols = ['AirTime', col]
@@ -398,7 +398,7 @@ class LogFile(object):
             if airtime_bin_size == 0:
                 airtime = np.zeros(len(data.index))
             else:
-                airtime = data[cols[0]].map(self.dectime) // airtime_bin_size
+                airtime = data[cols[0]] // (airtime_bin_size*1600)
 
             group_data = data[cols[1]].groupby(airtime).apply(lambda x: x.value_counts())
             if 0 == group_data.size:
@@ -417,7 +417,7 @@ class LogFile(object):
             Args：
                 col：待分析列名
                 agg_func:聚合函数{'sum', 'mean', 'cnt'}
-                airtime_bin_size：时间粒度
+                airtime_bin_size：时间粒度s
                 ylabel：y轴标签
                 mean_by: 'cnt'
                 ax：坐标，如果为none，在新的figure上画图
@@ -438,7 +438,7 @@ class LogFile(object):
 
         if ax is None:
             ax = plt.subplots(1, 1)[1]
-        xlabel = 'Airtime/{bin}ms'.format(bin=airtime_bin_size)
+        xlabel = 'Airtime/{bin}s'.format(bin=airtime_bin_size)
         if y_label is None:
             ax.set_ylabel(col)
         else:
