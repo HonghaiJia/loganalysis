@@ -298,14 +298,11 @@ class LogFile(object):
                 filters：滤波条件，字典格式{‘列名0’：值， ‘列名1’：值...}
                 time_col: 聚合的时间列名，默认‘AirTime’
         '''
+        assert(airtime_bin_size>=1)
         rlt = pd.DataFrame()
         cnt = pd.DataFrame()
         for data in self.gen_of_cols(cols+[time_col], val_filter=filters):
-            if airtime_bin_size == 0:
-                airtime = np.zeros(len(data.index))
-            else:
-                airtime = data[time_col] // (airtime_bin_size*1600)
-  
+            airtime = data[time_col] // (airtime_bin_size*1600)
             group_data = data[cols].groupby(airtime)          
             rlt = rlt.add(group_data.sum(), fill_value=0)
             cnt = cnt.add(group_data.count(), fill_value=0) 
@@ -320,12 +317,10 @@ class LogFile(object):
                 filters：滤波条件，字典格式{‘列名0’：值， ‘列名1’：值...}
                 time_col: 聚合的时间列名，默认‘AirTime’
         '''
+        assert(airtime_bin_size>=1)
         rlt = pd.DataFrame()
         for data in self.gen_of_cols(cols+[time_col], val_filter=filters):
-            if airtime_bin_size == 0:
-                airtime = np.zeros(len(data.index))
-            else:
-                airtime = data[time_col] // (airtime_bin_size*1600)
+            airtime = data[time_col] // (airtime_bin_size*1600)
             group_data = data[cols].groupby(airtime)
             rlt = rlt.add(group_data.sum(), fill_value=0)
         return rlt.dropna()
@@ -339,12 +334,10 @@ class LogFile(object):
                 filters：滤波条件，字典格式{‘列名0’：值， ‘列名1’：值...}
                 time_col: 聚合的时间列名，默认‘AirTime’
         '''
+        assert(airtime_bin_size>=1)
         rlt = pd.DataFrame()
         for data in self.gen_of_cols(cols+[time_col], val_filter=filters):
-            if airtime_bin_size == 0:
-                airtime = np.zeros(len(data.index))
-            else:
-                airtime = data[time_col] // (airtime_bin_size*1600)
+            airtime = data[time_col] // (airtime_bin_size*1600)
             group_data = data[cols].groupby(airtime)
             rlt = rlt.combine_first(group_data.min().dropna())
         return rlt
@@ -358,12 +351,10 @@ class LogFile(object):
                 filters：滤波条件，字典格式{‘列名0’：值， ‘列名1’：值...}
                 time_col: 聚合的时间列名，默认‘AirTime’
         '''
+        assert(airtime_bin_size>=1)
         rlt = pd.DataFrame()
         for data in self.gen_of_cols(cols+[time_col], val_filter=filters):
-            if airtime_bin_size == 0:
-                airtime = np.zeros(len(data.index))
-            else:
-                airtime = data[time_col] // (airtime_bin_size*1600)
+            airtime = data[time_col] // (airtime_bin_size*1600)
             group_data = data[cols].groupby(airtime)
             rlt = rlt.combine_first(group_data.max().dropna())
         return rlt
@@ -375,12 +366,10 @@ class LogFile(object):
                 airtime_bin_size：时间粒度（s), 0表示不区分时间粒度
                 filters：滤波条件，字典格式{‘列名0’：值， ‘列名1’：值...}
         '''
+        assert(airtime_bin_size>=1)
         cnt = pd.DataFrame()
         for data in self.gen_of_cols(cols+[time_col], val_filter=filters):
-            if airtime_bin_size == 0:
-                airtime = np.zeros(len(data.index))
-            else:
-                airtime = data[time_col] // (airtime_bin_size*1600)
+            airtime = data[time_col] // (airtime_bin_size*1600)
             group_data = data[cols].groupby(airtime)
             cnt = cnt.add(group_data.count(), fill_value=0)
         return cnt
@@ -443,8 +432,10 @@ class LogFile(object):
             ax.set_ylabel(col)
         else:
             ax.set_ylabel(y_label)
-        data[col].index.name = xlabel
-        data[col].plot(ax=ax, kind='line', style='ko--')
+            
+        if data[col].size:
+            data[col].index.name = xlabel
+            data[col].plot(ax=ax, kind='line', style='ko--')
 
     def show_hist(self, col, xlim=None, ax=None, ratio=True):
         '''指定列的时间直方图

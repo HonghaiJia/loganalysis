@@ -74,6 +74,48 @@ class UlSchd():
         xlabel = 'Airtime/{bin}s'.format(bin=airtime_bin_size)
         bler_data.index.name = xlabel
         bler_data.plot(ax=ax, kind='line', style='o--')
+        
+    def show_dci0lost_cnt(self, airtime_bin_size=1):
+        ack_cols = ['CRCI.u8AckInfo']
+        val_filter = {'CRCI.u8AckInfo':[2]}
+        rlt = pd.Series()
+        for data in self._log.gen_of_cols(ack_cols, val_filter=val_filter):
+            data = data.dropna(how='any')
+            if 0 == data.size:
+                continue
+            cnt = data[ack_cols[1]].groupby(data[ack_cols[0]]// (airtime_bin_size*1600)).count()
+            rlt = rlt.add(cnt, fill_value=0)
+
+        ax = plt.subplots(1, 1)[1]
+        ax.set_ylabel('dci0lost_ratio')
+        ax.set_ylim([0, 1])
+        xlabel = 'Airtime/{bin}s'.format(bin=airtime_bin_size)
+        rlt.index.name = xlabel
+        if rlt.size:
+            rlt.plot(ax=ax, kind='line', style='o--')
+        
+    def show_harqfail_cnt(self, airtime_bin_size=1):
+        '''画图描述指定粒度下的harqfail次数
+
+            Args:
+                col_name: 待分析字段
+                airtime_bin_size：统计粒度，默认为1s
+            Returns：
+                趋势图：x轴为时间粒度，y轴为调度UE次数
+        '''
+        col_name = r'CRCI.b8IsHarqFail'
+        self._log.show_trend(col_name, AGG_FUNC_SUM, airtime_bin_size)
+        return
+        
+    def show_pathloss(self, airtime_bin_size=1, ax=None):
+        col_name = r'PHR.u16PathLoss'
+        self._log.show_trend(col_name, AGG_FUNC_MEAN, airtime_bin_size)
+        return
+    
+    def show_1rbsinr(self, airtime_bin_size=1, ax=None):
+        col_name = r'PUSCH_SINR.s16SingleRbSINR'
+        self._log.show_trend(col_name, AGG_FUNC_MEAN, airtime_bin_size)
+        return
 
     def show_amc(self, airtime_bin_size=1):
         '''画图描述指定粒度下的调度RB数
@@ -131,12 +173,24 @@ class UlSchd():
                 col_name: 待分析字段
                 airtime_bin_size：统计粒度，默认为1s
             Returns：
-                直方图（kde）：x轴调度RB数，y轴为调度次数
                 趋势图：x轴为时间粒度，y轴为平均RB数
         '''
         col_name = r'GRANT.u8RbNum'
         self._log.show_trend(col_name, AGG_FUNC_MEAN, airtime_bin_size, mean_by='time')
         #self._log.show_hist(col_name, xlim=[0, 100])
+        return
+    
+    def show_schd_mcs(self, airtime_bin_size=1):
+        '''画图描述指定粒度下的调度mcs
+
+            Args:
+                col_name: 待分析字段
+                airtime_bin_size：统计粒度，默认为1s
+            Returns：
+                趋势图：x轴为时间粒度，y轴为平均RB数
+        '''
+        col_name = r'TB.u8Mcs'
+        self._log.show_trend(col_name, AGG_FUNC_MEAN, airtime_bin_size, mean_by='time')
         return
         
     def show_rpt_minbsr(self, lchgrp=3, airtime_bin_size=1):
@@ -233,13 +287,11 @@ class UlSchd():
             Return:
                 流量图
         '''
+        assert(airtime_bin_size>=1)
         cols = [r'TB.u16TbSize', 'AirTime']
         rlt = pd.Series()
         for data in self.match_schd_and_ack(cols=cols):
-            if airtime_bin_size == 0:
-                airtime = np.zeros(len(data.index))
-            else:
-                airtime = data[cols[1]] // (airtime_bin_size*1600)
+            airtime = data[cols[1]] // (airtime_bin_size*1600)
             group_data = data[cols[0]].groupby(airtime)
             rlt = rlt.add(group_data.sum(), fill_value=0)
             

@@ -96,14 +96,16 @@ class DlSchd():
         ax[0].set_ylim([-28, 28])
         xlabel = 'Airtime/{bin}s'.format(bin=airtime_bin_size)
         ax[0].set_xlabel(xlabel)
-        delta.plot(ax=ax[0], kind='line', style='o--')
+        if delta.size:     
+            delta.plot(ax=ax[0], kind='line', style='o--')
 
         ax[1].set_ylim([0, 28])
         xlabel = 'Airtime/{bin}s'.format(bin=airtime_bin_size)
         ax[1].set_xlabel(xlabel)
         stdmcs = mean_data[[cols[1], cols[3]]].dropna(how='all', axis=1)
         ax[1].set_ylabel('Std_mcs')
-        stdmcs.plot(ax=ax[1], kind='line', style='o--')
+        if stdmcs.size:
+            stdmcs.plot(ax=ax[1], kind='line', style='o--')
  
     def show_bler_of_subframe(self, airtime_bin_size=1, subframe = 255, ax=None):
         '''画图描述指定粒度下的子帧级bler
@@ -290,13 +292,11 @@ class DlSchd():
             Return:
                 流量图
         '''
+        assert(airtime_bin_size>=1)
         cols = [r'TB.u16TbSize', 'AirTime']
         rlt = pd.Series()
         for data in self.match_schd_and_ack(cols=cols):
-            if airtime_bin_size == 0:
-                airtime = np.zeros(len(data.index))
-            else:
-                airtime = data[cols[1]] // (airtime_bin_size*1600)
+            airtime = data[cols[1]] // (airtime_bin_size*1600)
             group_data = data[cols[0]].groupby(airtime)
             rlt = rlt.add(group_data.sum(), fill_value=0)
             
@@ -304,6 +304,60 @@ class DlSchd():
         xlabel = 'Airtime/{bin}s'.format(bin=airtime_bin_size)
         ax.set_ylabel('Throuput/Kbits')
         rlt = rlt * 8 / 1000
+        rlt.index.name = xlabel
+        rlt.plot(ax=ax, kind='line', style='ko--')
+        return
+    
+    def show_dtx_cnt(self, airtime_bin_size=1):
+        '''画图描述指定粒度下的dtx次数
+
+            Args:
+                col_name: 待分析字段
+                airtime_bin_size：统计粒度，默认为1s
+            Returns：
+                趋势图：x轴为时间粒度，y轴为调度UE次数
+        '''
+        assert(airtime_bin_size>=1)
+        cols = ['ACK.u32DemTime','ACK.u8Tb0AckInfo', 'ACK.u8Tb1AckInfo']
+        rlt = pd.DataFrame()
+        for data in self._log.gen_of_cols(cols):
+            data = data[(data[cols[1]] == 2) | (data[cols[2]] == 2)]
+            data[data[cols[1]] == 255] = None
+            data[data[cols[2]] == 255] = None            
+            airtime = data[cols[0]] // (airtime_bin_size*1600)
+            group_data = data[[cols[1], cols[2]]].groupby(airtime).count()
+            rlt = rlt.add(group_data, fill_value=0)
+        
+        ax = plt.subplots(1, 1)[1]
+        xlabel = 'Airtime/{bin}s'.format(bin=airtime_bin_size)
+        ax.set_ylabel('DtxCnt')
+        rlt.index.name = xlabel
+        if rlt.size:
+            rlt.plot(ax=ax, kind='line', style='ko--')
+        return
+        
+    def show_harqfail_cnt(self, airtime_bin_size=1):
+        '''画图描述指定粒度下的harqfail次数
+
+            Args:
+                col_name: 待分析字段
+                airtime_bin_size：统计粒度，默认为1s
+            Returns：
+                趋势图：x轴为时间粒度，y轴为调度UE次数
+        '''
+        assert(airtime_bin_size>=1)
+        cols = ['ACK.u32DemTime','ACK.u8Tb0IsHarqFail', 'ACK.u8Tb1IsHarqFail']
+        rlt = pd.DataFrame()
+        for data in self._log.gen_of_cols(cols):
+            data[data[cols[1]] == 255] = None
+            data[data[cols[2]] == 255] = None            
+            airtime = data[cols[0]] // (airtime_bin_size*1600)
+            group_data = data[[cols[1], cols[2]]].groupby(airtime).sum()
+            rlt = rlt.add(group_data, fill_value=0)
+        
+        ax = plt.subplots(1, 1)[1]
+        xlabel = 'Airtime/{bin}s'.format(bin=airtime_bin_size)
+        ax.set_ylabel('HarqFailCnt')
         rlt.index.name = xlabel
         rlt.plot(ax=ax, kind='line', style='ko--')
         return
@@ -392,7 +446,7 @@ class DlSchdUe(DlSchd):
         rlt[cols[1]] = rlt[cols[1]].map(lambda x: (x-31)*16)
         rlt = rlt.set_index(cols[0])
         rlt[rlt==-32767] = None    
-        ax = plt.subplots(3, 1)[1]
+        ax = plt.subplots(3, 1, sharex=True)[1]
         rlt.index.name = 'Airtime/s'
         ax[0].set_ylabel('tac/ts')
         rlt[cols[1]].plot(ax=ax[0], kind='line', style='o--')
