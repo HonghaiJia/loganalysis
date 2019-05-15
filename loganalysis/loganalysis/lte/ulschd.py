@@ -76,14 +76,13 @@ class UlSchd():
         bler_data.plot(ax=ax, kind='line', style='o--')
         
     def show_dci0lost_cnt(self, airtime_bin_size=1):
-        ack_cols = ['CRCI.u8AckInfo']
-        val_filter = {'CRCI.u8AckInfo':[2]}
+        ack_cols = ['CRCI.u32DemTime','CRCI.u8AckInfo']
         rlt = pd.Series()
-        for data in self._log.gen_of_cols(ack_cols, val_filter=val_filter):
-            data = data.dropna(how='any')
+        for data in self._log.gen_of_cols(ack_cols):
+            data[ack_cols[1]][data[ack_cols[1]]!=2]=0
             if 0 == data.size:
                 continue
-            cnt = data[ack_cols[1]].groupby(data[ack_cols[0]]// (airtime_bin_size*1600)).count()
+            cnt = data[ack_cols[1]].groupby(data[ack_cols[0]]// (airtime_bin_size*1600)).sum()
             rlt = rlt.add(cnt, fill_value=0)
 
         ax = plt.subplots(1, 1)[1]

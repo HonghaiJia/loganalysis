@@ -78,34 +78,39 @@ class DlSchd():
         ax.set_ylabel('Ratio')
         ratio.plot(ax=ax, kind='line', style='o--')
 
-    def show_amc(self, airtime_bin_size=1):
-        '''画图描述指定粒度下的调度Mcs
+    def show_amc_txdiv(self, airtime_bin_size=1):
+        '''画图描述指定粒度下的调度txdiv_Mcs
 
             Args:
                 airtime_bin_size：统计粒度，默认为1s
             Returns：
                 趋势图：x轴为时间粒度，y轴为平均std_mcs，delta
         '''
-        cols = ['AMC_DIV.s16TxDivDeltaMcs', 'AMC_DIV.u8TxDivStdMcs', 'AMC_CDD.s16CddDeltaMcs',
-                'AMC_CDD.u8CddStdMcs']
+        cols = ['AMC_DIV.s16TxDivDeltaMcs', 'AMC_DIV.u8TxDivStdMcs']
+        data = self._log.mean_of_cols(cols, airtime_bin_size=airtime_bin_size, by='cnt', time_col='AirTime')
+        if 0 == data.size:
+            print('No Data to analysis of columns: [{0}, {1}]'.format(cols[0], cols[1]))
+            return
+        data[cols[0]] = data[cols[0]]/100
+        #xlabel = 'Airtime/{bin}s'.format(bin=airtime_bin_size)
+        data.plot(kind='line', style='o--', ylim=[-28,28])
+            
+    def show_amc_cdd(self, airtime_bin_size=1):
+        '''画图描述指定粒度下的调度cdd_Mcs
 
-        mean_data = self._log.mean_of_cols(cols, airtime_bin_size=airtime_bin_size, by='cnt', time_col='AirTime')
-        fig, ax = plt.subplots(2, 1, sharex=True)
-        delta = mean_data[[cols[0], cols[2]]].dropna(how='all', axis=1)/100
-        ax[0].set_ylabel('Delta')
-        ax[0].set_ylim([-28, 28])
-        xlabel = 'Airtime/{bin}s'.format(bin=airtime_bin_size)
-        ax[0].set_xlabel(xlabel)
-        if delta.size:     
-            delta.plot(ax=ax[0], kind='line', style='o--')
+            Args:
+                airtime_bin_size：统计粒度，默认为1s
+            Returns：
+                趋势图：x轴为时间粒度，y轴为平均std_mcs，delta
+        '''
+        cols = ['AMC_CDD.s16CddDeltaMcs', 'AMC_CDD.u8CddStdMcs']
+        data = self._log.mean_of_cols(cols, airtime_bin_size=airtime_bin_size, by='cnt', time_col='AirTime')
+        if 0 == data.size:
+            print('No Data to analysis of columns: [{0}, {1}]'.format(cols[0], cols[1]))
+            return
+        data[cols[0]] = data[cols[0]]/100
+        data.plot(kind='line', style='o--', ylim=[-28,28])
 
-        ax[1].set_ylim([0, 28])
-        xlabel = 'Airtime/{bin}s'.format(bin=airtime_bin_size)
-        ax[1].set_xlabel(xlabel)
-        stdmcs = mean_data[[cols[1], cols[3]]].dropna(how='all', axis=1)
-        ax[1].set_ylabel('Std_mcs')
-        if stdmcs.size:
-            stdmcs.plot(ax=ax[1], kind='line', style='o--')
  
     def show_bler_of_subframe(self, airtime_bin_size=1, subframe = 255, ax=None):
         '''画图描述指定粒度下的子帧级bler
@@ -321,11 +326,10 @@ class DlSchd():
         cols = ['ACK.u32DemTime','ACK.u8Tb0AckInfo', 'ACK.u8Tb1AckInfo']
         rlt = pd.DataFrame()
         for data in self._log.gen_of_cols(cols):
-            data = data[(data[cols[1]] == 2) | (data[cols[2]] == 2)]
-            data[data[cols[1]] == 255] = None
-            data[data[cols[2]] == 255] = None            
+            data[cols[1]][data[cols[1]] != 2] = 0
+            data[cols[2]][data[cols[2]] != 2] = 0            
             airtime = data[cols[0]] // (airtime_bin_size*1600)
-            group_data = data[[cols[1], cols[2]]].groupby(airtime).count()
+            group_data = data[[cols[1], cols[2]]].groupby(airtime).sum()
             rlt = rlt.add(group_data, fill_value=0)
         
         ax = plt.subplots(1, 1)[1]
@@ -349,11 +353,11 @@ class DlSchd():
         cols = ['ACK.u32DemTime','ACK.u8Tb0IsHarqFail', 'ACK.u8Tb1IsHarqFail']
         rlt = pd.DataFrame()
         for data in self._log.gen_of_cols(cols):
-            data[data[cols[1]] == 255] = None
-            data[data[cols[2]] == 255] = None            
+            data[cols[1]][data[cols[1]] != 1] = 0
+            data[cols[1]][data[cols[2]] != 1] = 0            
             airtime = data[cols[0]] // (airtime_bin_size*1600)
             group_data = data[[cols[1], cols[2]]].groupby(airtime).sum()
-            rlt = rlt.add(group_data, fill_value=0)
+            rlt = rlt.add(group_data,fill_value=0)
         
         ax = plt.subplots(1, 1)[1]
         xlabel = 'Airtime/{bin}s'.format(bin=airtime_bin_size)
